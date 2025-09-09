@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>WorkPulse Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h3>WorkPulse Tracker</h3>
+
+    <!-- Current status and spinner -->
+    <div id="status">Loading your status from HRMS...</div>
+    <div id="spinner" style="display:none;">
+        <img src="spinner.gif" alt="Loading..." width="24" height="24">
+        Syncing HRMS data...
+    </div>
+
+    <!-- Work progress bar -->
+    <div id="progress-container" data-remaining="Calculating...">
+        <div id="progress-bar"></div>
+    </div>
+    <span id="remaining-time"></span>
+
+    <!-- Attendance summary -->
+    <div id="summary">Fetching summary...</div>
+
+    <script src="config.js"></script>
+    <script src="popup.js"></script>
+</body>
+
+</html>
