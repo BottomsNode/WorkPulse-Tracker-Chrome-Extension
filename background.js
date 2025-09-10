@@ -9,10 +9,22 @@ const hrmsToken = DEFAULT_HRMS.hrmsToken;
 const hrmsUser = DEFAULT_HRMS.hrmsUser;
 
 let hrmsData = { workStart: null, workEnd: null, breaks: [] };
+let lastRefreshDate = null;
 
 // --- FETCH HRMS DATA ---
 async function fetchHRMSAttendance() {
     try {
+        const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+
+        // 🔄 Reset daily state if a new day is detected
+        if (lastRefreshDate !== today) {
+            console.log("[Background] New day detected, resetting HRMS data & alarms.");
+            hrmsData = { workStart: null, workEnd: null, breaks: [] };
+            chrome.alarms.clearAll();
+            chrome.alarms.create("breakReminder", { periodInMinutes: BREAK_REMINDER_MINUTES });
+            lastRefreshDate = today;
+        }
+
         const res = await fetch(ATTENDANCE_API, {
             method: "GET",
             headers: {
@@ -25,7 +37,7 @@ async function fetchHRMSAttendance() {
         const data = await res.json();
         mapHRMSData(data);
 
-        // Schedule reminders
+        // Schedule reminders for today
         const expectedCheckout = getCheckoutTime();
         if (expectedCheckout) {
             scheduleCheckoutReminder(expectedCheckout);
@@ -103,6 +115,14 @@ function getSummaryText() {
 // --- ALARMS & NOTIFICATIONS ---
 chrome.runtime.onInstalled.addListener(() => {
     chrome.alarms.create("breakReminder", { periodInMinutes: BREAK_REMINDER_MINUTES });
+});
+
+chrome.runtime.onStartup.addListener(() => {
+    console.log("[Background] Startup cleanup: clearing alarms.");
+    chrome.alarms.clearAll();
+    chrome.alarms.create("breakReminder", { periodInMinutes: BREAK_REMINDER_MINUTES });
+    hrmsData = { workStart: null, workEnd: null, breaks: [] };
+    lastRefreshDate = null;
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
