@@ -57,6 +57,7 @@ function updateProgress(summary) {
     let workStart = null, workEnd = null, breaks = [];
     const today = new Date().toISOString().split("T")[0];
 
+    // Parse summary lines
     summary.split("\n").forEach(line => {
         if (line.startsWith("Check In:")) {
             const t = line.replace("Check In:", "").trim();
@@ -66,12 +67,11 @@ function updateProgress(summary) {
             const t = line.replace("Check Out:", "").trim();
             if (t) workEnd = new Date(`${today}T${t}`);
         }
-        if (line.includes("-") && line.includes("min")) {
+        if (/^\s*\d+\./.test(line) && line.includes("min")) {
             const parts = line.split("-");
             const start = new Date(`${today}T${parts[0].replace(/\d+\.\s*/, "").trim()}`);
             const end = new Date(`${today}T${parts[1].split("(")[0].trim()}`);
-            const duration = (end - start);
-            breaks.push({ start, end, duration });
+            breaks.push({ start, end, duration: (end - start) });
         }
     });
 
@@ -80,46 +80,46 @@ function updateProgress(summary) {
     const remainingText = document.getElementById("remaining-text");
 
     if (!workStart) {
-        ring.style.strokeDasharray = 0;
+        ring.style.strokeDasharray = "0";
+        ring.style.strokeDashoffset = "0";
         percentText.textContent = "0%";
         remainingText.textContent = "Not started";
-        remainingText.style.fill = "#666"; // neutral color
+        remainingText.style.fill = "#666";
         return;
     }
 
-    const WORK_MINUTES = 510;
-    const totalBreakMinutes = breaks.reduce((s, b) => s + (b.duration || 0), 0) / 60000;
+    // --- Calculate total work and break minutes ---
+    const WORK_MINUTES = 510; // 8.5 hours
+    const totalBreakMinutes = breaks.reduce((sum, b) => sum + (b.duration || 0), 0) / 60000;
     const expectedCheckout = new Date(workStart.getTime() + (WORK_MINUTES + totalBreakMinutes) * 60000);
 
     const now = workEnd || new Date();
-    let completedMinutes = ((now - workStart) / 60000);
-    if (completedMinutes < 0) completedMinutes = 0;
-
+    let completedMinutes = Math.max((now - workStart) / 60000, 0);
     const percent = Math.min((completedMinutes / (WORK_MINUTES + totalBreakMinutes)) * 100, 100);
 
-    // Update circle
-    const radius = 70;
+    // --- Update ring dynamically ---
+    const radius = ring.r.baseVal.value;
     const circumference = 2 * Math.PI * radius;
-    ring.style.strokeDasharray = `${circumference}`;
+
+    ring.style.strokeDasharray = circumference;
+    ring.style.transition = "stroke-dashoffset 0.8s ease, stroke 0.5s ease";
     ring.style.strokeDashoffset = circumference * (1 - percent / 100);
 
-    // --- Dynamic color change (ring + text) ---
-    let color = "#4caf50"; // default green
-    if (percent >= 50) {
-        color = "#4caf50"; // Green
-    } else if (percent >= 20) {
-        color = "#ff9800"; // Orange
-    } else {
-        color = "#f44336"; // Red
-    }
+    // --- Color logic ---
+    let color = "#4caf50";
+    if (percent >= 50) color = "#4caf50";
+    else if (percent >= 20) color = "#ff9800";
+    else color = "#f44336";
+
     ring.style.stroke = color;
-    remainingText.style.fill = color; // Match text color with ring
+    remainingText.style.fill = color;
 
     percentText.textContent = `${Math.round(percent)}%`;
 
+    // Remaining time
     const remainingMinutes = Math.max(Math.round((expectedCheckout - now) / 60000), 0);
     const hours = Math.floor(remainingMinutes / 60);
-    const minutes = Math.floor(remainingMinutes % 60);
+    const minutes = remainingMinutes % 60;
     remainingText.textContent = `${hours}h ${minutes}m`;
 }
 
