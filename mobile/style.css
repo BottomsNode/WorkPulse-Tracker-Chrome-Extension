@@ -1,9 +1,15 @@
 body {
     font-family: 'Segoe UI', sans-serif;
+    padding: 10px;
     margin: 0;
-    padding: 4px;
-    background: linear-gradient(145deg, #f4f6f9, #ffffff);
-    color: #2c3e50;
+    width: 100%;
+    max-width: 480px;
+    background: #121212;
+    color: #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: background 0.3s, color 0.3s;
 }
 
 .container {
@@ -14,20 +20,23 @@ body {
 
 h3 {
     text-align: center;
-    margin: 8px 0 14px;
-    color: #34495e;
+    margin: 10px 0 14px;
+    color: #f5f5f5;
     font-weight: 600;
+    font-size: 1.4em;
 }
 
 /* Status */
 #status {
+    width: 100%;
     padding: 10px;
-    background: #f9fbfc;
+    background: #1e1e1e;
     border-left: 5px solid #3498db;
-    border-radius: 8px;
+    border-radius: 10px;
     text-align: center;
-    margin-bottom: 10px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    margin-bottom: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    transition: background 0.3s, color 0.3s;
 }
 
 /* Spinner */
@@ -37,8 +46,8 @@ h3 {
     justify-content: center;
     gap: 6px;
     margin-bottom: 10px;
-    font-size: 0.85em;
-    color: #34495e;
+    font-size: 0.9em;
+    color: #cccccc;
 }
 
 /* Progress ring */
@@ -51,7 +60,7 @@ h3 {
 
 .ring-bg {
     fill: none;
-    stroke: #eee;
+    stroke: #333;
     stroke-width: 10;
 }
 
@@ -62,13 +71,13 @@ h3 {
     stroke-linecap: round;
     transform: rotate(-90deg);
     transform-origin: 50% 50%;
-    transition: stroke-dasharray 0.5s, stroke-dashoffset 0.5s, stroke 0.5s;
+    transition: stroke-dasharray 0.5s ease, stroke-dashoffset 0.5s ease, stroke 0.5s ease;
 }
 
 #progress-text {
     font-size: 16px;
     font-weight: bold;
-    fill: #333;
+    fill: #e0e0e0;
 }
 
 #remaining-text {
@@ -80,35 +89,44 @@ h3 {
 
 /* Summary */
 #summary {
+    width: 100%;
     padding: 14px;
-    background: #fff;
-    border-radius: 10px;
-    font-size: 14px;
-    color: #2c3e50;
-    max-height: 400px;
+    background: #1e1e1e;
+    border-radius: 12px;
+    font-size: 1em;
+    color: #e0e0e0;
+    max-height: 300px;
     overflow-y: auto;
-    border: 1px solid #d0d7de;
-    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #2c2c2c;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+    transition: background 0.3s, color 0.3s;
 }
 
 /* Summary items */
 .summary-item {
     display: flex;
     justify-content: space-between;
-    padding: 6px 10px;
-    margin: 4px 0;
-    border-radius: 8px;
-    background: #f5f5f5;
+    padding: 8px 12px;
+    margin: 6px 0;
+    border-radius: 10px;
+    background: #2a2a2a;
     font-size: 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s ease, background 0.3s ease;
+}
+
+.summary-item:hover {
+    transform: translateY(-2px);
+    background: #3a3a3a;
 }
 
 .summary-item .label {
     font-weight: bold;
-    color: #444;
+    color: #f5f5f5;
 }
 
 .summary-item .value {
-    color: #222;
+    color: #e0e0e0;
 }
 
 .summary-item.checkin {
@@ -127,7 +145,7 @@ h3 {
     margin-top: 10px;
     font-weight: bold;
     font-size: 15px;
-    color: #555;
+    color: #cccccc;
 }
 
 /* Break cards */
@@ -135,12 +153,19 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 10px;
+    padding: 10px 12px;
     margin: 6px 0;
-    border-radius: 8px;
-    background: #fff8e1;
-    border: 1px solid #ffecb3;
+    border-radius: 12px;
+    background: #2c2c2c;
+    border: 1px solid #444;
     font-size: 13px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    transition: transform 0.2s ease, background 0.3s ease;
+}
+
+.break-card:hover {
+    transform: translateY(-2px);
+    background: #3a3a3a;
 }
 
 .break-index {
@@ -152,12 +177,12 @@ h3 {
     flex: 1;
     text-align: center;
     font-family: monospace;
-    color: #333;
+    color: #e0e0e0;
 }
 
 .break-duration {
     font-weight: bold;
-    color: #555;
+    color: #cccccc;
 }
 
 /* Scrollbar */
@@ -166,32 +191,33 @@ h3 {
 }
 
 #summary::-webkit-scrollbar-thumb {
-    background: #95a5a6;
+    background: #555;
     border-radius: 3px;
 }
 
 #summary::-webkit-scrollbar-track {
-    background: #ecf0f1;
+    background: #2c2c2c;
     border-radius: 3px;
 }
 
 /* Mobile responsiveness */
-@media (max-width: 480px) {
-    body {
+@media (max-width: 400px) {
+    #progress-ring svg {
+        width: 100px;
+        height: 100px;
+    }
+
+    #progress-text {
         font-size: 14px;
     }
 
-    #progress-ring {
-        width: 120px;
-        height: 120px;
-    }
-
-    .break-card {
+    #remaining-text {
         font-size: 12px;
-        padding: 6px 8px;
     }
 
-    #summary {
-        max-height: 300px;
+    .summary-item,
+    .break-card {
+        padding: 8px;
+        font-size: 13px;
     }
 }

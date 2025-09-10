@@ -59,25 +59,54 @@ function updateSummary(summary) {
     summaryDiv.innerHTML = html;
 }
 
-function updateProgress(summary) {
-    const ring = document.querySelector(".ring-progress");
-    const percentText = document.getElementById("progress-text");
-    const remainingText = document.getElementById("remaining-text");
+function animateProgressRing(ring, percent, duration = 1000) {
+    const radius = ring.r.baseVal.value;
+    const circumference = 2 * Math.PI * radius;
 
+    ring.style.strokeDasharray = `${circumference}`;
+    ring.style.strokeDashoffset = circumference;
+
+    let start = null;
+
+    function step(timestamp) {
+        if (!start) start = timestamp;
+        const progress = Math.min((timestamp - start) / duration, 1);
+        const currentOffset = circumference * (1 - (percent / 100) * progress);
+        ring.style.strokeDashoffset = currentOffset;
+
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        }
+    }
+
+    requestAnimationFrame(step);
+}
+
+function updateProgress(summary) {
     let workStart = null, workEnd = null, breaks = [];
     const today = new Date().toISOString().split("T")[0];
 
     summary.split("\n").forEach(line => {
-        if (line.startsWith("Check In:")) workStart = new Date(`${today}T${line.replace("Check In:", "").trim()}`);
-        if (line.startsWith("Check Out:")) workEnd = new Date(`${today}T${line.replace("Check Out:", "").trim()}`);
-        if (/^\s*\d+\./.test(line)) {
-            const match = line.match(/(\d+)\.\s*(.*?)\s*-\s*(.*?)\s*\((.*?)\)/);
-            if (match) {
-                const [_, __, start, end, ___] = match;
-                breaks.push({ start: new Date(`${today}T${start}`), end: new Date(`${today}T${end}`) });
-            }
+        if (line.startsWith("Check In:")) {
+            const t = line.replace("Check In:", "").trim();
+            if (t) workStart = new Date(`${today}T${t}`);
+        }
+        if (line.startsWith("Check Out:")) {
+            const t = line.replace("Check Out:", "").trim();
+            if (t) workEnd = new Date(`${today}T${t}`);
+        }
+        if (line.includes("-") && line.includes("min")) {
+            const parts = line.split("-");
+            const start = new Date(`${today}T${parts[0].replace(/\d+\.\s*/, "").trim()}`);
+            const end = new Date(`${today}T${parts[1].split("(")[0].trim()}`);
+            const duration = (end - start);
+            breaks.push({ start, end, duration });
         }
     });
+
+    const ring = document.querySelector(".ring-progress");
+    const percentText = document.getElementById("progress-text");
+    const remainingText = document.getElementById("remaining-text");
 
     if (!workStart) {
         ring.style.strokeDasharray = 0;
@@ -88,24 +117,33 @@ function updateProgress(summary) {
     }
 
     const WORK_MINUTES = 510;
-    const totalBreakMinutes = breaks.reduce((s, b) => s + ((b.end - b.start) / 60000), 0);
+    const totalBreakMinutes = breaks.reduce((s, b) => s + (b.duration || 0), 0) / 60000;
     const expectedCheckout = new Date(workStart.getTime() + (WORK_MINUTES + totalBreakMinutes) * 60000);
+
     const now = workEnd || new Date();
-    let completedMinutes = Math.max((now - workStart) / 60000, 0);
+    let completedMinutes = ((now - workStart) / 60000);
+    if (completedMinutes < 0) completedMinutes = 0;
+
     const percent = Math.min((completedMinutes / (WORK_MINUTES + totalBreakMinutes)) * 100, 100);
 
-    const radius = 50;
-    const circumference = 2 * Math.PI * radius;
-    ring.style.strokeDasharray = circumference;
-    ring.style.strokeDashoffset = circumference * (1 - percent / 100);
+    // Animate ring
+    animateProgressRing(ring, percent, 1000);
 
-    let color = percent >= 50 ? "#4caf50" : percent >= 20 ? "#ff9800" : "#f44336";
+    // Dynamic color
+    let color = "#4caf50";
+    if (percent >= 50) color = "#4caf50";
+    else if (percent >= 20) color = "#ff9800";
+    else color = "#f44336";
+
     ring.style.stroke = color;
     remainingText.style.fill = color;
+
     percentText.textContent = `${Math.round(percent)}%`;
 
     const remainingMinutes = Math.max(Math.round((expectedCheckout - now) / 60000), 0);
-    remainingText.textContent = `${Math.floor(remainingMinutes / 60)}h ${remainingMinutes % 60}m`;
+    const hours = Math.floor(remainingMinutes / 60);
+    const minutes = Math.floor(remainingMinutes % 60);
+    remainingText.textContent = `${hours}h ${minutes}m`;
 }
 
 async function refreshData() {
