@@ -27,76 +27,69 @@ function updateSummary(summary) {
 }
 
 function updateProgress(summary) {
-    const progressBar = document.getElementById("progress-bar");
-    const progressContainer = document.getElementById("progress-container");
-
     let workStart = null, workEnd = null, breaks = [];
-
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+    const today = new Date().toISOString().split("T")[0];
 
     summary.split("\n").forEach(line => {
         if (line.startsWith("Check In:")) {
             const t = line.replace("Check In:", "").trim();
-            if (t) workStart = new Date(`${todayStr}T${t}`);
+            if (t) workStart = new Date(`${today}T${t}`);
         }
         if (line.startsWith("Check Out:")) {
             const t = line.replace("Check Out:", "").trim();
-            if (t) workEnd = new Date(`${todayStr}T${t}`);
+            if (t) workEnd = new Date(`${today}T${t}`);
         }
         if (line.includes("-") && line.includes("min")) {
             const parts = line.split("-");
-            const start = new Date(`${todayStr}T${parts[0].replace(/\d+\.\s*/, "").trim()}`);
-            const end = new Date(`${todayStr}T${parts[1].split("(")[0].trim()}`);
+            const start = new Date(`${today}T${parts[0].replace(/\d+\.\s*/, "").trim()}`);
+            const end = new Date(`${today}T${parts[1].split("(")[0].trim()}`);
             const duration = (end - start);
             breaks.push({ start, end, duration });
         }
     });
 
+    const ring = document.querySelector(".ring-progress");
+    const percentText = document.getElementById("progress-text");
+    const remainingText = document.getElementById("remaining-text");
+
     if (!workStart) {
-        progressBar.style.width = "0%";
-        progressBar.style.backgroundColor = "#ff4d4d";
-        progressContainer.setAttribute("data-remaining", "Work not started");
+        ring.style.strokeDasharray = 0;
+        percentText.textContent = "0%";
+        remainingText.textContent = "Not started";
         return;
     }
 
-    const WORK_MINUTES = 510; // 8.5 hours
-    const totalBreakMinutes = breaks.reduce((sum, b) => sum + (b.duration || 0), 0) / 60000;
-
-    // Calculate expected checkout by adding work + breaks
+    const WORK_MINUTES = 510;
+    const totalBreakMinutes = breaks.reduce((s, b) => s + (b.duration || 0), 0) / 60000;
     const expectedCheckout = new Date(workStart.getTime() + (WORK_MINUTES + totalBreakMinutes) * 60000);
 
     const now = workEnd || new Date();
     let completedMinutes = ((now - workStart) / 60000);
     if (completedMinutes < 0) completedMinutes = 0;
 
-    let percent = Math.min((completedMinutes / (WORK_MINUTES + totalBreakMinutes)) * 100, 100);
-    progressBar.style.width = percent + "%";
+    const percent = Math.min((completedMinutes / (WORK_MINUTES + totalBreakMinutes)) * 100, 100);
 
-    // Color gradient
-    if (percent < 50) {
-        const r = 180;
-        const g = Math.floor(70 + (85 * (percent / 50)));
-        const b = 50;
-        progressBar.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+    // Update circle
+    const radius = 70;
+    const circumference = 2 * Math.PI * radius;
+    ring.style.strokeDasharray = `${circumference}`;
+    ring.style.strokeDashoffset = circumference * (1 - percent / 100);
+
+    // --- Dynamic color change based on remaining percentage ---
+    if (percent >= 50) {
+        ring.style.stroke = "#4caf50"; // Green
+    } else if (percent >= 20) {
+        ring.style.stroke = "#ff9800"; // Orange
     } else {
-        const r = Math.floor(200 - 200 * ((percent - 50) / 50));
-        const g = 150;
-        const b = 60;
-        progressBar.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        ring.style.stroke = "#f44336"; // Red
     }
+
+    percentText.textContent = `${Math.round(percent)}%`;
 
     const remainingMinutes = Math.max(Math.round((expectedCheckout - now) / 60000), 0);
     const hours = Math.floor(remainingMinutes / 60);
     const minutes = Math.floor(remainingMinutes % 60);
-    progressContainer.setAttribute("data-remaining", `Remaining: ${hours}h ${minutes}m`);
-
-    // Update Expected Checkout label in summary
-    const summaryDiv = document.getElementById("summary");
-    const expectedLabel = summaryDiv.querySelector(".checkout");
-    if (expectedLabel) {
-        expectedLabel.innerText = `Expected Checkout: ${expectedCheckout.toLocaleTimeString()}`;
-    }
+    remainingText.textContent = `${hours}h ${minutes}m`;
 }
 
 async function refreshPopup() {
@@ -131,7 +124,15 @@ async function refreshPopup() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // Fetch HRMS user for the header
+    const spinner = document.getElementById("spinner");
+    const ringContainer = document.getElementById("progress-ring-container");
+
+    // --- Show spinner for at least 500ms ---
+    spinner.style.display = "flex";
+    ringContainer.style.display = "none";
+    await new Promise(r => setTimeout(r, 500));
+
+    // Fetch HRMS user
     chrome.runtime.sendMessage({ action: "getHRMSUser" }, (response) => {
         if (response?.hrmsUser) {
             const user = response.hrmsUser;
@@ -142,14 +143,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
-    // Start auto-refresh every 2 minutes
-    refreshPopup();
-    setInterval(refreshPopup, 120000);
-
-    // Initial spinner/status
+    // Initial status
     updateStatus("⌛ Fetching your status from HRMS...");
-    const spinner = document.getElementById("spinner");
-    spinner.style.display = "block";
 
     try {
         const res = await new Promise((resolve, reject) => {
@@ -164,11 +159,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         updateSummary(res.summary);
         updateProgress(res.summary);
 
+        // Show ring
+        spinner.style.display = "none";
+        ringContainer.style.display = "flex";
+
     } catch (err) {
         console.error("[Popup] Error fetching summary:", err);
         updateStatus("❌ Unable to fetch HRMS data. Please reopen popup.");
-    } finally {
         spinner.style.display = "none";
     }
-});
 
+    // Auto-refresh every 2 minutes
+    refreshPopup();
+    setInterval(refreshPopup, 120000);
+});

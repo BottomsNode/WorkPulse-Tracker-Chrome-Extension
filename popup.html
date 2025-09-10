@@ -10,18 +10,24 @@
 <body>
     <h3>WorkPulse Tracker</h3>
 
-    <!-- Current status and spinner -->
-    <div id="status">Loading your status from HRMS...</div>
-    <div id="spinner" style="display:none;">
+    <!-- Status + Syncing -->
+    <div id="status">⌛ Fetching your status from HRMS...</div>
+    <div id="spinner">
         <img src="spinner.gif" alt="Loading..." width="24" height="24">
         Syncing HRMS data...
     </div>
 
-    <!-- Work progress bar -->
-    <div id="progress-container" data-remaining="Calculating...">
-        <div id="progress-bar"></div>
+    <!-- Circular progress ring -->
+    <div id="progress-ring-container" style="display:none;">
+        <svg id="progress-ring" width="160" height="160">
+            <circle class="ring-bg" cx="80" cy="80" r="70" />
+            <circle class="ring-progress" cx="80" cy="80" r="70" />
+            <!-- Percentage (top inside circle) -->
+            <text id="progress-text" x="80" y="65" text-anchor="middle" dominant-baseline="middle">0%</text>
+            <!-- Remaining time (center of circle) -->
+            <text id="remaining-text" x="80" y="95" text-anchor="middle" dominant-baseline="middle">--h --m</text>
+        </svg>
     </div>
-    <span id="remaining-time"></span>
 
     <!-- Attendance summary -->
     <div id="summary">Fetching summary...</div>
