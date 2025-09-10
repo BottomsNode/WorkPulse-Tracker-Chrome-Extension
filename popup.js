@@ -11,14 +11,41 @@ function updateSummary(summary) {
 
     lines.forEach(line => {
         if (line.startsWith("Check In:")) {
-            html += `<div class="label checkin">${line}</div>`;
-        } else if (line.startsWith("Expected Checkout:")) {
-            html += `<div class="label checkout">${line}</div>`;
-        } else if (line.startsWith("Breaks:")) {
-            html += `<div class="label breaks">${line}</div>`;
-        } else if (/^\s*\d+\./.test(line)) {
-            html += `<div class="break-item">${line}</div>`;
-        } else {
+            html += `<div class="summary-item checkin">
+                        <span class="label">Check In</span>
+                        <span class="value">${line.replace("Check In:", "").trim()}</span>
+                     </div>`;
+        }
+        else if (line.startsWith("Check Out:")) {
+            html += `<div class="summary-item checkout">
+                        <span class="label">Check Out</span>
+                        <span class="value">${line.replace("Check Out:", "").trim()}</span>
+                     </div>`;
+        }
+        else if (line.startsWith("Expected Checkout:")) {
+            html += `<div class="summary-item expected">
+                        <span class="label">Expected Checkout</span>
+                        <span class="value">${line.replace("Expected Checkout:", "").trim()}</span>
+                     </div>`;
+        }
+        else if (line.startsWith("Breaks:")) {
+            html += `<div class="summary-header">🛑 Breaks</div>`;
+        }
+        else if (/^\s*\d+\./.test(line)) {
+            // Example: "1. 11:16:41 - 11:36:10 (19 min)"
+            const match = line.match(/(\d+)\.\s*(.*?)\s*-\s*(.*?)\s*\((.*?)\)/);
+            if (match) {
+                const [_, index, start, end, duration] = match;
+                html += `<div class="break-card" title="Break #${index}: ${start} → ${end} (${duration})">
+                    <div class="break-index">#${index}</div>
+                    <div class="break-time">${start} → ${end}</div>
+                    <div class="break-duration">⏱ ${duration}</div>
+                 </div>`;
+            } else {
+                html += `<div class="break-item">${line}</div>`;
+            }
+        }
+        else {
             html += `<div class="summary-text">${line}</div>`;
         }
     });
@@ -56,6 +83,7 @@ function updateProgress(summary) {
         ring.style.strokeDasharray = 0;
         percentText.textContent = "0%";
         remainingText.textContent = "Not started";
+        remainingText.style.fill = "#666"; // neutral color
         return;
     }
 
@@ -75,14 +103,17 @@ function updateProgress(summary) {
     ring.style.strokeDasharray = `${circumference}`;
     ring.style.strokeDashoffset = circumference * (1 - percent / 100);
 
-    // --- Dynamic color change based on remaining percentage ---
+    // --- Dynamic color change (ring + text) ---
+    let color = "#4caf50"; // default green
     if (percent >= 50) {
-        ring.style.stroke = "#4caf50"; // Green
+        color = "#4caf50"; // Green
     } else if (percent >= 20) {
-        ring.style.stroke = "#ff9800"; // Orange
+        color = "#ff9800"; // Orange
     } else {
-        ring.style.stroke = "#f44336"; // Red
+        color = "#f44336"; // Red
     }
+    ring.style.stroke = color;
+    remainingText.style.fill = color; // Match text color with ring
 
     percentText.textContent = `${Math.round(percent)}%`;
 
