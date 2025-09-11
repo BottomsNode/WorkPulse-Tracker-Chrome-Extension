@@ -97,13 +97,10 @@ function updateProgress(summary) {
     let completedMinutes = Math.max((now - workStart) / 60000, 0);
     const percent = Math.min((completedMinutes / (WORK_MINUTES + totalBreakMinutes)) * 100, 100);
 
-    // --- Update ring dynamically ---
-    const radius = ring.r.baseVal.value;
-    const circumference = 2 * Math.PI * radius;
-
-    ring.style.strokeDasharray = circumference;
-    ring.style.transition = "stroke-dashoffset 0.8s ease, stroke 0.5s ease";
-    ring.style.strokeDashoffset = circumference * (1 - percent / 100);
+    // --- Animate ring from previous to new percent ---
+    const prevPercent = parseFloat(ring.getAttribute("data-prev-percent") || "0");
+    animateRing(ring, prevPercent, percent, 1000);
+    ring.setAttribute("data-prev-percent", percent);
 
     // --- Color logic ---
     let color = "#4caf50";
@@ -152,6 +149,31 @@ async function refreshPopup() {
     } finally {
         spinner.style.display = "none";
     }
+}
+
+function animateRing(ring, fromPercent, toPercent, duration = 1000) {
+    const radius = ring.r.baseVal.value;
+    const circumference = 2 * Math.PI * radius;
+
+    ring.style.strokeDasharray = circumference;
+
+    let start = null;
+
+    function step(timestamp) {
+        if (!start) start = timestamp;
+        const progress = Math.min((timestamp - start) / duration, 1);
+
+        // Interpolate percent between old and new values
+        const currentPercent = fromPercent + (toPercent - fromPercent) * progress;
+        const offset = circumference * (1 - currentPercent / 100);
+        ring.style.strokeDashoffset = offset;
+
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        }
+    }
+
+    requestAnimationFrame(step);
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
